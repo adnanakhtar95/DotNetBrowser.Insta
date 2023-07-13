@@ -19,6 +19,9 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using DotNetBrowser.Handlers;
+using System.Diagnostics;
+//using DotNetBrowser.Wpf;
 
 namespace InstaBrowser
 {
@@ -28,6 +31,22 @@ namespace InstaBrowser
         private  IBrowser browser;
         private  IEngine engine;
         private bool _isLoggedIn;
+        //private IBrowserView _browserView;
+        public System.Windows.Forms.Form MainControl { get; set; }
+
+        private delegate bool IsElementLoadedOnDOM(IDocument oDocument);
+        public enum StepCompleted
+        {
+            Step_Init = 0,
+            Step_ElementFound,
+            Step_LoggedIn,
+           
+
+           
+
+            Step_EndProcess
+        }
+        public static StepCompleted CurrentStep = StepCompleted.Step_Init;
         public Form1()
         {
             
@@ -48,6 +67,7 @@ namespace InstaBrowser
                 Dock = DockStyle.Fill
             };
 
+
             EngineOptions engineOptions = new EngineOptions.Builder
             {
                 RenderingMode = RenderingMode.HardwareAccelerated,
@@ -66,8 +86,68 @@ namespace InstaBrowser
             // Initialize the Windows Forms BrowserView control.
             browserView.InitializeFrom(browser);
             browser.Navigation.LoadUrl(Url);
-            browser.Navigation.FrameLoadFinished += Navigation_FrameLoadFinished;
+            browser.Passwords.SavePasswordHandler =
+                 new Handler<DotNetBrowser.Passwords.Handlers.SavePasswordParameters, DotNetBrowser.Passwords.Handlers.SavePasswordResponse>(p =>
+                  {
+                     return DotNetBrowser.Passwords.Handlers.SavePasswordResponse.NeverSave;
+                  });
+            browser.Navigation.FrameLoadFinished += Navigation_FrameLoadFinished; 
+            browser.Navigation.FrameLoadFinished += Navigation_LoadFinished;
+
+
+            
+
         }
+        private void Navigation_LoadFinished(object sender, FrameLoadFinishedEventArgs e)
+        {
+           
+            if (e.Browser.MainFrame == null) { return; }
+            if (e.Browser.MainFrame.IsMain)
+            {
+               
+                IDocument document = e.Browser.MainFrame.Document;
+                string URL = e.Browser.Url;
+                //IElement oDiv;
+
+                if (URL == "https://www.instagram.com/")
+                {
+                    if (e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
+                    {
+                        e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
+                    }
+
+                }
+
+                if ((URL == "https://www.instagram.com/accounts/onetap/?next=%2F") )
+                {
+
+                  
+                    WaitForElementToLoad(e, CurrentStep, x => (e.Browser.MainFrame.Document.GetElementByClassName("_ac8f") != null));
+                    Thread.Sleep(500);
+                    //oDiv = (IElement)e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now".ToLower()).FirstOrDefault();
+
+                    if (e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
+                    {
+                         //e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
+                        string script = "var element = document.querySelector('.x1i10hfl'); if (element) element.click();";                        
+                        e.Browser.MainFrame.ExecuteJavaScript(script);
+                        Thread.Sleep(500);
+                        Application.DoEvents();
+                    }
+
+                    return;
+                }
+
+               
+
+
+            }
+
+
+
+
+        }
+
         private void Navigation_FrameLoadFinished(object sender, FrameLoadFinishedEventArgs e)
         {
 
@@ -322,5 +402,36 @@ namespace InstaBrowser
         //        //oLog.WriteErrorLog(System.Reflection.MethodBase.GetCurrentMethod().Name, ex);
         //    }
         //}
+        private bool WaitForElementToLoad(FrameLoadFinishedEventArgs e, StepCompleted currentStep, IsElementLoadedOnDOM isElementLoadedOnDOM)
+        {
+
+            int iTick = 0;
+            try
+            {
+                while (CurrentStep == currentStep)
+                {
+                    //if (MainControlDisposing) { return false; };
+                    if (isElementLoadedOnDOM(e.Browser.MainFrame.Document))
+                    {
+                        CurrentStep = StepCompleted.Step_ElementFound;
+                        return true;
+                    }
+                    iTick++;
+                    Thread.Sleep(500);
+
+                    if (iTick > 20)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                //oLog.WriteErrorLog(System.Reflection.MethodBase.GetCurrentMethod().Name, ex);
+            }
+            return false;
+        }
+
     }
 }
