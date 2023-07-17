@@ -85,17 +85,25 @@ namespace InstaBrowser
 
             // Initialize the Windows Forms BrowserView control.
             browserView.InitializeFrom(browser);
-            browser.Navigation.LoadUrl(Url);
-            browser.Passwords.SavePasswordHandler =
-                 new Handler<DotNetBrowser.Passwords.Handlers.SavePasswordParameters, DotNetBrowser.Passwords.Handlers.SavePasswordResponse>(p =>
-                  {
-                     return DotNetBrowser.Passwords.Handlers.SavePasswordResponse.NeverSave;
-                  });
-            browser.Navigation.FrameLoadFinished += Navigation_FrameLoadFinished; 
-            browser.Navigation.FrameLoadFinished += Navigation_LoadFinished;
+            //browser.Navigation.LoadUrl(Url);
+            //browser.Passwords.SavePasswordHandler =
+            //     new Handler<DotNetBrowser.Passwords.Handlers.SavePasswordParameters, DotNetBrowser.Passwords.Handlers.SavePasswordResponse>(p =>
+            //      {
+            //         return DotNetBrowser.Passwords.Handlers.SavePasswordResponse.NeverSave;
+            //      });
+            //browser.Navigation.FrameLoadFinished += Navigation_FrameLoadFinished; 
+            //browser.Navigation.FrameLoadFinished += Navigation_LoadFinished;
+            Task.Run(() =>
+            {
+
+                browser.Navigation.FrameLoadFinished += Navigation_FrameLoadFinished;
+                browser.Navigation.FrameLoadFinished += Navigation_LoadFinished;
+                browser.Navigation.LoadUrl(Url).Wait();
+                //    // After the page is loaded successfully, we can configure the observer.
+
+            });
 
 
-            
 
         }
         private void Navigation_LoadFinished(object sender, FrameLoadFinishedEventArgs e)
@@ -108,37 +116,116 @@ namespace InstaBrowser
                 IDocument document = e.Browser.MainFrame.Document;
                 string URL = e.Browser.Url;
                 //IElement oDiv;
-
-                if (URL == "https://www.instagram.com/")
-                {
-                    if (e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
-                    {
-                        e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
-                    }
-
-                }
-
-                if ((URL == "https://www.instagram.com/accounts/onetap/?next=%2F") )
+                if ((URL == "https://www.instagram.com/accounts/onetap/?next=%2F"))
                 {
 
-                  
+
                     WaitForElementToLoad(e, CurrentStep, x => (e.Browser.MainFrame.Document.GetElementByClassName("_ac8f") != null));
                     Thread.Sleep(500);
                     //oDiv = (IElement)e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now".ToLower()).FirstOrDefault();
 
                     if (e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
                     {
-                         //e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
-                        string script = "var element = document.querySelector('.x1i10hfl'); if (element) element.click();";                        
+                        //e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
+                        string script = "var element = document.querySelector('.x1i10hfl'); if (element) element.click();";
                         e.Browser.MainFrame.ExecuteJavaScript(script);
                         Thread.Sleep(500);
                         Application.DoEvents();
+
+
                     }
 
                     return;
                 }
 
-               
+                if (URL == "https://www.instagram.com/?next=%2F")
+                {
+                    if (e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
+                    {
+                        e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
+                    }
+                    Thread.Sleep(5000);
+                    Application.DoEvents();
+                    // string script = @"
+                    //var elements = document.querySelectorAll('span');
+                    //var targetElement;
+
+                    //elements.forEach(function(element) {
+                    //  if (element.innerText === 'Search') {
+                    //    targetElement = element;
+                    //    return;
+                    //  }
+                    //});
+
+                    //if (targetElement) {
+                    //  // Get the parent div or navigation link
+                    //  var parentElement = targetElement.closest('div.x9f619') || targetElement.closest('a._a6hd');
+
+                    //  if (parentElement) {
+                    //    // You have selected the desired element, do whatever you want with it
+                    //    console.log(parentElement);
+                    //    // Trigger the click event on the parent element
+                    //    targetElement.click();
+                    //  }
+                    //}";
+                    //This line of code is working fine to
+                    //string javascriptCode = @"const xpath = '//div[contains(@class, ""x9f619"")]//span[contains(text(), ""Search"")]'; const element = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (element) { var event = document.createEvent(""MouseEvent""); event.initEvent(""click"", true, true); element.dispatchEvent(event); }";
+                    //string javascriptCode = @" const xpath = '//*[@aria-label=""Search""]'; const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null); const element = result.singleNodeValue; if (element) {  var event = document.createEvent(""MouseEvent"");  event.initEvent(""click"", true, true); element.dispatchEvent(event);}";
+                    //browser.MainFrame.ExecuteJavaScript(javascriptCode);
+                    IElement element = e.Browser.MainFrame.Document.GetElementByClassName("x1n2onr6");
+                    if(element != null)
+                    {
+                        IElement spanElement = element.GetElementsByTagName("a").FirstOrDefault(x => x.InnerText == "Search");
+                        if (spanElement != null)
+                        {
+                            // Perform desired operations with the selected element
+                            //spanElement.Click();
+                            IElement parentDivElement = spanElement.Parent.GetElementByTagName("div");
+                            parentDivElement.Click();
+                        }
+                    }
+
+                }
+                //if (URL == "https://www.instagram.com/")
+                //{
+                //    if (e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
+                //    {
+                //        e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
+                //    }
+                //    Thread.Sleep(500);
+
+                //    // string script = @"
+                //    //var elements = document.querySelectorAll('span');
+                //    //var targetElement;
+
+                //    //elements.forEach(function(element) {
+                //    //  if (element.innerText === 'Search') {
+                //    //    targetElement = element;
+                //    //    return;
+                //    //  }
+                //    //});
+
+                //    //if (targetElement) {
+                //    //  // Get the parent div or navigation link
+                //    //  var parentElement = targetElement.closest('div.x9f619') || targetElement.closest('a._a6hd');
+
+                //    //  if (parentElement) {
+                //    //    // You have selected the desired element, do whatever you want with it
+                //    //    console.log(parentElement);
+                //    //    // Trigger the click event on the parent element
+                //    //    targetElement.click();
+                //    //  }
+                //    //}";
+                //    //This line of code is working fine to
+                //    // string javascriptCode = @"const xpath = '//div[contains(@class, ""x9f619"")]//span[contains(text(), ""Search"")]'; const element = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (element) { var event = document.createEvent(""MouseEvent""); event.initEvent(""click"", true, true); element.dispatchEvent(event); }";
+                //    string javascriptCode = @" const xpath = '//*[@aria-label=""Search""]'; const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null); const element = result.singleNodeValue; if (element) {  var event = document.createEvent(""MouseEvent"");  event.initEvent(""click"", true, true); element.dispatchEvent(event);}";
+                //    e.Browser.MainFrame.ExecuteJavaScript(javascriptCode);
+
+                //}
+
+
+
+
 
 
             }
