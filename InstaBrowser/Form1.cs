@@ -21,6 +21,9 @@ using System.Xml.Linq;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 using DotNetBrowser.Handlers;
 using System.Diagnostics;
+using System.Security.Policy;
+using DotNetBrowser.Browser.Handlers;
+using DotNetBrowser.Passwords.Handlers;
 //using DotNetBrowser.Wpf;
 
 namespace InstaBrowser
@@ -28,10 +31,13 @@ namespace InstaBrowser
     public partial class Form1 : Form
     {
         private const string Url = "https://www.instagram.com/accounts/login/";
+        public static string hashTags = "#Love";
         private  IBrowser browser;
         private  IEngine engine;
         private bool _isLoggedIn;
         //private IBrowserView _browserView;
+
+
         public System.Windows.Forms.Form MainControl { get; set; }
 
         private delegate bool IsElementLoadedOnDOM(IDocument oDocument);
@@ -40,7 +46,7 @@ namespace InstaBrowser
             Step_Init = 0,
             Step_ElementFound,
             Step_LoggedIn,
-           
+            Step_ClickedHashTag,
 
            
 
@@ -95,6 +101,20 @@ namespace InstaBrowser
             //browser.Navigation.FrameLoadFinished += Navigation_LoadFinished;
             Task.Run(() =>
             {
+                //browser.MainFrame.Browser.CreatePopupHandler =
+                //  new Handler<CreatePopupParameters, CreatePopupResponse>(p =>
+                //  {
+
+                //      browser.Navigation.LoadUrl(p.TargetUrl);
+
+
+                //      return CreatePopupResponse.Suppress();
+                //  });
+                browser.Passwords.SavePasswordHandler =
+                    new Handler<SavePasswordParameters, SavePasswordResponse>(p =>
+                    {
+                        return SavePasswordResponse.NeverSave;
+                    });
 
                 browser.Navigation.FrameLoadFinished += Navigation_FrameLoadFinished;
                 browser.Navigation.FrameLoadFinished += Navigation_LoadFinished;
@@ -146,34 +166,8 @@ namespace InstaBrowser
                     }
                     Thread.Sleep(5000);
                     Application.DoEvents();
-                    // string script = @"
-                    //var elements = document.querySelectorAll('span');
-                    //var targetElement;
-
-                    //elements.forEach(function(element) {
-                    //  if (element.innerText === 'Search') {
-                    //    targetElement = element;
-                    //    return;
-                    //  }
-                    //});
-
-                    //if (targetElement) {
-                    //  // Get the parent div or navigation link
-                    //  var parentElement = targetElement.closest('div.x9f619') || targetElement.closest('a._a6hd');
-
-                    //  if (parentElement) {
-                    //    // You have selected the desired element, do whatever you want with it
-                    //    console.log(parentElement);
-                    //    // Trigger the click event on the parent element
-                    //    targetElement.click();
-                    //  }
-                    //}";
-                    //This line of code is working fine to
-                    //string javascriptCode = @"const xpath = '//div[contains(@class, ""x9f619"")]//span[contains(text(), ""Search"")]'; const element = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; if (element) { var event = document.createEvent(""MouseEvent""); event.initEvent(""click"", true, true); element.dispatchEvent(event); }";
-                    //string javascriptCode = @" const xpath = '//*[@aria-label=""Search""]'; const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null); const element = result.singleNodeValue; if (element) {  var event = document.createEvent(""MouseEvent"");  event.initEvent(""click"", true, true); element.dispatchEvent(event);}";
-                    //browser.MainFrame.ExecuteJavaScript(javascriptCode);
                     IElement element = e.Browser.MainFrame.Document.GetElementByClassName("x1n2onr6");
-                    if(element != null)
+                    if (element != null)
                     {
                         IElement spanElement = element.GetElementsByTagName("a").FirstOrDefault(x => x.InnerText == "Search");
                         if (spanElement != null)
@@ -184,6 +178,66 @@ namespace InstaBrowser
                             parentDivElement.Click();
                         }
                     }
+                    Thread.Sleep(2000);
+                    WaitForElementToLoad(e, CurrentStep, x => (e.Browser.MainFrame.Document.GetElementByClassName("x9f619") != null));
+                    IInputElement inputElement = (IInputElement)e.Browser.MainFrame.Document.GetElementsByTagName("input").Where(x => x.Attributes["placeholder"].Contains("Search")).FirstOrDefault();
+                    if (inputElement != null)
+                    {
+                        //inputElement.Value = "Love";
+                        EnterValue((IInputElement)e.Browser.MainFrame.Document.GetElementsByTagName("input").Where(x => x.Attributes["placeholder"].Contains("Search")).FirstOrDefault(), hashTags, e);
+                        Thread.Sleep(500);
+
+
+                    }
+                    IElement firstTag;
+                    Thread.Sleep(5000);
+                    firstTag = e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("none")).FirstOrDefault().GetElementsByTagName("a").FirstOrDefault().GetElementsByTagName("span").Where(a => (a.InnerText.Trim().ToLower() == hashTags.Trim().ToLower())).FirstOrDefault();
+
+                    if (firstTag != null)
+                    {
+                        firstTag.Click();
+                    }
+                    Thread.Sleep(5000);
+                    CurrentStep = StepCompleted.Step_ClickedHashTag;
+                    //this code will work to
+                    //foreach (IElement oDiv in e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("none")))
+                    //{
+                    //    foreach (IElement oA in oDiv.GetElementsByTagName("a"))
+                    //    {
+                    //        foreach (IElement oSpan in oA.GetElementsByTagName("span"))
+                    //        {
+                    //            if (oSpan.InnerText.ToLower() == hashTags.ToLower())
+                    //            {
+                    //                oSpan.Click();
+                    //            }
+                    //        }
+                    //    }
+                    //}
+                }
+                //if (URL == $"https://www.instagram.com/explore/tags/{hashTags.Replace("#", "")}/" && CurrentStep == StepCompleted.Step_ClickedHashTag)
+                if (URL == "https://www.instagram.com/?next=%2F" && CurrentStep == StepCompleted.Step_ClickedHashTag)
+                {
+                    Thread.Sleep(500);
+                    e.Browser.MainFrame.Document.GetElementsByClassName("_aabd _aa8k  _al3l").FirstOrDefault().GetElementByTagName("a").Click();
+                    Thread.Sleep(1000);
+                    IElement nextButton = e.Browser.MainFrame.Document.GetElementByClassName("_abl-");
+
+                    while (nextButton != null)
+                    {
+                        
+                        nextButton.Click();
+                        Thread.Sleep(5000);                        
+                           WaitForElementToLoad(e, CurrentStep, x => (e.Browser.MainFrame.Document.GetElementByClassName("_ae65") != null));
+                        IElement likebutton =  (IElement)e.Browser.MainFrame.Document.GetElementsByClassName("_aamu _ae3_ _ae47 _ae48").FirstOrDefault().GetElementsByTagName("span").FirstOrDefault().GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("button")).FirstOrDefault();
+                        if(likebutton!= null)
+                        {
+                            likebutton.Click();
+                        }
+                        Thread.Sleep(5000);
+                    }
+
+
+
 
                 }
                 //if (URL == "https://www.instagram.com/")
