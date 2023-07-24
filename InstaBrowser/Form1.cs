@@ -31,13 +31,32 @@ namespace InstaBrowser
     public partial class Form1 : Form
     {
         private const string Url = "https://www.instagram.com/accounts/login/";
-        public static string hashTags = "#Love";
+        //public static string hashTags = "#Love";
         private  IBrowser browser;
         private  IEngine engine;
         private bool _isLoggedIn;
         //private IBrowserView _browserView;
 
-
+        string[] hashtagsArray = {
+                "#love",
+                "#instagood",
+                "#photooftheday",
+                "#fashion",
+                "#beautiful",
+                "#happy",
+                "#cute",
+                "#followme",
+                "#tbt",
+                "#like4like",
+                "#follow",
+                "#picoftheday"
+            };
+        static string GetRandomHashtag(string[] hashtags)
+        {
+            Random random = new Random();
+            int index = random.Next(hashtags.Length);
+            return hashtags[index];
+        }
         public System.Windows.Forms.Form MainControl { get; set; }
 
         private delegate bool IsElementLoadedOnDOM(IDocument oDocument);
@@ -58,6 +77,9 @@ namespace InstaBrowser
             
 
             InitializeComponent();
+            //this.WindowState = FormWindowState.Maximized;
+            //this.Size = new System.Drawing.Size(1366, 768);
+            this.Size = new System.Drawing.Size(1280, 720);
             button1.Click += button1_Click;
         }
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
@@ -160,6 +182,7 @@ namespace InstaBrowser
 
                 if (URL == "https://www.instagram.com/?next=%2F")
                 {
+                    string hashTag = GetRandomHashtag(hashtagsArray);
                     if (e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault() != null)
                     {
                         e.Browser.MainFrame.Document.GetElementsByTagName("button").Where(s => s.InnerText.Trim() == "Not Now").FirstOrDefault().Click();
@@ -184,14 +207,14 @@ namespace InstaBrowser
                     if (inputElement != null)
                     {
                         //inputElement.Value = "Love";
-                        EnterValue((IInputElement)e.Browser.MainFrame.Document.GetElementsByTagName("input").Where(x => x.Attributes["placeholder"].Contains("Search")).FirstOrDefault(), hashTags, e);
+                        EnterValue((IInputElement)e.Browser.MainFrame.Document.GetElementsByTagName("input").Where(x => x.Attributes["placeholder"].Contains("Search")).FirstOrDefault(), hashTag, e);
                         Thread.Sleep(500);
 
 
                     }
                     IElement firstTag;
                     Thread.Sleep(5000);
-                    firstTag = e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("none")).FirstOrDefault().GetElementsByTagName("a").FirstOrDefault().GetElementsByTagName("span").Where(a => (a.InnerText.Trim().ToLower() == hashTags.Trim().ToLower())).FirstOrDefault();
+                    firstTag = e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("none")).FirstOrDefault().GetElementsByTagName("a").FirstOrDefault().GetElementsByTagName("span").Where(a => (a.InnerText.Trim().ToLower() == hashTag.Trim().ToLower())).FirstOrDefault();
 
                     if (firstTag != null)
                     {
@@ -219,21 +242,26 @@ namespace InstaBrowser
                 {
                     Thread.Sleep(500);
                     e.Browser.MainFrame.Document.GetElementsByClassName("_aabd _aa8k  _al3l").FirstOrDefault().GetElementByTagName("a").Click();
-                    Thread.Sleep(1000);
+                    Thread.Sleep(2000);
+                    IElement _likebutton = (IElement)e.Browser.MainFrame.Document.GetElementsByClassName("_aamu _ae3_ _ae47 _ae48").FirstOrDefault().GetElementsByTagName("span").FirstOrDefault().GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("button")).FirstOrDefault();
+                    if (_likebutton != null)
+                    {
+                        _likebutton.Click();
+                    }                    
                     IElement nextButton = e.Browser.MainFrame.Document.GetElementByClassName("_abl-");
 
                     while (nextButton != null)
                     {
                         
                         nextButton.Click();
-                        Thread.Sleep(5000);                        
-                           WaitForElementToLoad(e, CurrentStep, x => (e.Browser.MainFrame.Document.GetElementByClassName("_ae65") != null));
+                        Thread.Sleep(3000);                        
+                        WaitForElementToLoad(e, CurrentStep, x => (e.Browser.MainFrame.Document.GetElementByClassName("_ae65") != null));
                         IElement likebutton =  (IElement)e.Browser.MainFrame.Document.GetElementsByClassName("_aamu _ae3_ _ae47 _ae48").FirstOrDefault().GetElementsByTagName("span").FirstOrDefault().GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("button")).FirstOrDefault();
                         if(likebutton!= null)
                         {
                             likebutton.Click();
                         }
-                        Thread.Sleep(5000);
+                        Thread.Sleep(2000);
                     }
 
 
