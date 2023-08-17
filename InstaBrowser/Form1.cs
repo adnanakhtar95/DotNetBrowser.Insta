@@ -214,8 +214,8 @@ namespace InstaBrowser
                     }
                     IElement firstTag;
                     Thread.Sleep(5000);
-                    firstTag = e.Browser.MainFrame.Document.GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("none")).FirstOrDefault().GetElementsByTagName("a").FirstOrDefault().GetElementsByTagName("span").Where(a => (a.InnerText.Trim().ToLower() == hashTag.Trim().ToLower())).FirstOrDefault();
-
+                    //firstTag = e.Browser.MainFrame.Document.GetElementsByTagName("a").Where(x => x.Attributes["role"].Contains("link") && (x.GetElementsByTagName("span").Where(z => z.InnerText.Trim().ToLower().Contains(hashTag.Trim().ToLower())).FirstOrDefault())).FirstOrDefault();
+                    firstTag = e.Browser.MainFrame.Document.GetElementsByTagName("a").FirstOrDefault(x =>x.Attributes["role"].Contains("link") && x.GetElementsByTagName("span").Any(z => z.InnerText.Trim().ToLower().Contains(hashTag.Trim().ToLower())));
                     if (firstTag != null)
                     {
                         firstTag.Click();
@@ -240,7 +240,7 @@ namespace InstaBrowser
                 //if (URL == $"https://www.instagram.com/explore/tags/{hashTags.Replace("#", "")}/" && CurrentStep == StepCompleted.Step_ClickedHashTag)
                 if (URL == "https://www.instagram.com/?next=%2F" && CurrentStep == StepCompleted.Step_ClickedHashTag)
                 {
-                    Thread.Sleep(500);
+                    Thread.Sleep(600);
                     e.Browser.MainFrame.Document.GetElementsByClassName("_aabd _aa8k  _al3l").FirstOrDefault().GetElementByTagName("a").Click();
                     Thread.Sleep(2000);
                     IElement _likebutton = (IElement)e.Browser.MainFrame.Document.GetElementsByClassName("_aamu _ae3_ _ae47 _ae48").FirstOrDefault().GetElementsByTagName("span").FirstOrDefault().GetElementsByTagName("div").Where(x => x.Attributes["role"].Contains("button")).FirstOrDefault();
